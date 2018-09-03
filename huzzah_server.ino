@@ -69,7 +69,7 @@ void handleSingleLed() {
   if (wS.length() > 0) {
     int w = constrain(wS.toInt(), 0, 255);
     server.send(200, "text/plain", "setting white " + String(w));
-    strip.setPixelColor(ledIndex, strip.Color(0, 0, 0, 255));
+    strip.setPixelColor(ledIndex, strip.Color(0, 0, 0, w));
   } else {
     int r = rS.length() == 0 ? 0 : constrain(rS.toInt(), 0, 255);
     int g = gS.length() == 0 ? 0 : constrain(gS.toInt(), 0, 255);
