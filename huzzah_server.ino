@@ -66,7 +66,7 @@ uint32_t getColor() {
 }
 
 void handleRoot() {
-  server.send(200, "text/plain", "/led/single (index + either r, g, b OR w)\n/brightness (?value=0-255)");
+  server.send(200, "text/plain", "/led/single (index + either r, g, b OR w)\n/led/range (start, stop + either r, g, b OR w)\n/brightness (?value=0-255)");
 }
 
 void handleNotFound() {
@@ -149,6 +149,9 @@ void setup(void) {
   if (MDNS.begin("esp8266")) {
     Serial.println("MDNS responder started");
   }
+
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
 
   server.on("/", handleRoot);
   server.on("/led/single", handleSingleLed);
