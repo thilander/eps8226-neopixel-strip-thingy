@@ -38,6 +38,32 @@ byte neopix_gamma[] = {
   177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
   215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
 
+boolean isValidColor() {
+  if ((server.arg("r").length() == 0 &&
+       server.arg("g").length() == 0 &&
+       server.arg("b").length() == 0) &&
+       server.arg("w").length() == 0) {
+    return false;
+  }
+  return true;
+}
+
+uint32_t getColor() {
+  String rS = server.arg("r");
+  String gS = server.arg("g");
+  String bS = server.arg("b");
+  String wS = server.arg("w");
+
+  if (wS.length() > 0) {
+    int w = constrain(wS.toInt(), 0, 255);
+    return strip.Color(0, 0, 0, w);
+  } else {
+    int r = rS.length() == 0 ? 0 : constrain(rS.toInt(), 0, 255);
+    int g = gS.length() == 0 ? 0 : constrain(gS.toInt(), 0, 255);
+    int b = bS.length() == 0 ? 0 : constrain(bS.toInt(), 0, 255);
+    return strip.Color(r, g, b);
+  }
+}
 
 void handleRoot() {
   server.send(200, "text/plain", "/led/single (index + either r, g, b OR w)\n/brightness (?value=0-255)");
@@ -48,36 +74,53 @@ void handleNotFound() {
 }
 
 void handleSingleLed() {
-  String ledIndexS = server.arg("index");
-  String rS = server.arg("r");
-  String gS = server.arg("g");
-  String bS = server.arg("b");
-  String wS = server.arg("w");
+  if (!isValidColor()) {
+    server.send(400, "text/plain", "color must be specified (w (0-255) OR r, g, b (0-255)");
+    return;
+  }
+  uint32_t color = getColor();
 
-  if (ledIndexS.length() == 0) {
+  String indexS = server.arg("index");
+  if (indexS.length() == 0) {
     server.send(400, "text/plain", "index must be specified");
     return;
   }
 
-  if ((rS.length() == 0 && gS.length() == 0 && bS.length() == 0) && wS.length() == 0) {
-    server.send(400, "text/plain", "color or whiteness must be specified");
+  int index = constrain(indexS.toInt(), 0, NUM_LEDS-1);
+  strip.setPixelColor(index, color);
+  strip.show();
+  server.send(200, "text/plain", "setting color " + String(color) + " for led at index " + String(index));
+}
+
+void handleRangeLed() {
+  if (!isValidColor()) {
+    server.send(400, "text/plain", "color must be specified (w (0-255) OR r, g, b (0-255)");
+    return;
+  }
+  uint32_t color = getColor();
+
+  String startIndexS = server.arg("start");
+  String stopIndexS = server.arg("stop");
+
+  if (startIndexS.length() == 0 || stopIndexS.length() == 0) {
+    server.send(400, "text/plain", "range (start, stop) must be specified");
     return;
   }
 
-  int ledIndex = ledIndexS.toInt();
+  int startIndex = constrain(startIndexS.toInt(), 0, NUM_LEDS-1);
+  int stopIndex = constrain(stopIndexS.toInt(), 0, NUM_LEDS-1);
 
-  if (wS.length() > 0) {
-    int w = constrain(wS.toInt(), 0, 255);
-    server.send(200, "text/plain", "setting white " + String(w));
-    strip.setPixelColor(ledIndex, strip.Color(0, 0, 0, w));
-  } else {
-    int r = rS.length() == 0 ? 0 : constrain(rS.toInt(), 0, 255);
-    int g = gS.length() == 0 ? 0 : constrain(gS.toInt(), 0, 255);
-    int b = bS.length() == 0 ? 0 : constrain(bS.toInt(), 0, 255);
-    strip.setPixelColor(ledIndex, strip.Color(r, g, b));
-    server.send(200, "text/plain", "setting rgb " + String(r) + ", " + String(g) + ", " + String(b));
+  if (stopIndex <= startIndex) {
+    server.send(400, "text/plain", "stop must be greater than start");
+    return;
   }
-  strip.show();
+
+  for(uint16_t i=startIndex; i<=stopIndex; i++) {
+    strip.setPixelColor(i, color);
+    Serial.println(i);
+    strip.show();
+  }
+  server.send(400, "text/plain", "start index: " + String(startIndex) + ", stop index: " + String(stopIndex));
 }
 
 void handleBrightness() {
@@ -109,7 +152,7 @@ void setup(void) {
 
   server.on("/", handleRoot);
   server.on("/led/single", handleSingleLed);
-  // server.on("/led/range", handleRangeLed);
+  server.on("/led/range", handleRangeLed);
   server.on("/brightness", handleBrightness);
 
   server.onNotFound(handleNotFound);
