@@ -117,7 +117,6 @@ void handleRangeLed() {
 
   for(uint16_t i=startIndex; i<=stopIndex; i++) {
     strip.setPixelColor(i, color);
-    Serial.println(i);
   }
   strip.show();
   server.send(400, "text/plain", "start index: " + String(startIndex) + ", stop index: " + String(stopIndex));
