@@ -130,6 +130,7 @@ void handleBrightness() {
   }
   brightness = constrain(bS.toInt(), 0, 255);
   strip.setBrightness(brightness);
+  strip.show();
   server.send(200, "text/plain", String(brightness));
 }
 
